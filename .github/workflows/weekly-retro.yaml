@@ -31,7 +31,7 @@ jobs:
       - name: Get journal entries
         working-directory: journal-entries
         run: |
-          curl -X POST -s -H "Authorization: ${{ gcloud auth print-identity-token }}" \
+          curl -X POST -s -H "Authorization: $(gcloud auth print-identity-token)" \
           -H "Accept: application/json" \
           -H "Content-Type: application/json" \
           -d '{
@@ -50,7 +50,7 @@ jobs:
       - name: process journal entries
         working-directory: journal-entries
         run: |
-          curl -X POST -s -H "Authorization: ${{ gcloud auth print-identity-token }}" \
+          curl -X POST -s -H "Authorization: $(gcloud auth print-identity-token)" \
           -H "Accept: application/json" \
           -H "Content-Type: application/json" \
           -d '{
