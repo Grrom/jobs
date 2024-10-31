@@ -61,4 +61,4 @@ jobs:
 
       - name: output journal entries summary
         working-directory: journal-entries
-        run: ../scripts/stringify-json.sh journal-entries-summary.json
+        run: cat journal-entries-summary.json
