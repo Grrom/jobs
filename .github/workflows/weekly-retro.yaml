@@ -1,0 +1,64 @@
+name: weekly retro
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * 0"
+
+jobs:
+  get-journal-entries:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: create directories
+        run: mkdir -p journal-entries
+
+      - name: setup gcloud cli
+        run: |
+          wget https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz
+          tar zxvf google-cloud-sdk.tar.gz && ./google-cloud-sdk/install.sh --quiet --usage-reporting=false --path-update=true
+          PATH="google-cloud-sdk/bin:${PATH}"
+          gcloud --quiet components update
+
+      - name: Authenticate
+        working-directory: journal-entries
+        run: |
+          printf "%s" '${{ secrets.SERVICE_ACCOUNT }}' > key-file.json
+          gcloud auth activate-service-account --key-file=key-file.json
+          rm key-file.json
+
+      - name: Get journal entries
+        working-directory: journal-entries
+        run: |
+          curl -X POST -s -H "Authorization: ${{ gcloud auth print-identity-token }}" \
+          -H "Accept: application/json" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "organization": "${{ secrets.ORGANIZATION }}",
+            "database-id": "${{ secrets.DATABASE_ID }}",
+            "view-id": "${{ secrets.VIEW_ID }}",
+          }' \
+          -o journal-entries.json \
+          ${{ secrets.JOURNAL_ENTRIES_URL }}
+
+      - name: stringify journal entries
+        working-directory: journal-entries
+        run: |
+          ../scripts/stringify-json.sh journal-entries.json > journal-entries.txt
+
+      - name: process journal entries
+        working-directory: journal-entries
+        run: |
+          curl -X POST -s -H "Authorization: ${{ gcloud auth print-identity-token }}" \
+          -H "Accept: application/json" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "prompt": "Here are the journal entries for this week, please review and provide feedback. $(cat journal-entries.txt)",
+          }' \
+          -o journal-entries-summary.json \
+          ${{ secrets.LLM_URL }}
+
+      - name: output journal entries summary
+        working-directory: journal-entries
+        run: ../scripts/stringify-json.sh journal-entries-summary.json
