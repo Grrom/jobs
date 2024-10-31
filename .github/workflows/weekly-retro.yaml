@@ -40,7 +40,7 @@ jobs:
             "view-id": "${{ secrets.VIEW_ID }}",
           }' \
           -o journal-entries.json \
-          ${{ secrets.JOURNAL_ENTRIES_URL }}
+          ${{ secrets.NOTRE_URL }}
 
       - name: stringify journal entries
         working-directory: journal-entries
