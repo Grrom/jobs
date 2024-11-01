@@ -40,7 +40,7 @@ def main():
                     "content": line[1:].strip().replace("*", ""),
                 }
             )
-        if line.startswith("*"):
+        elif line.startswith("*"):
             summary.append(
                 {"type": "bulleted_list", "content": line[1:].strip().replace("*", "")}
             )
