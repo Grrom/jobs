@@ -31,13 +31,13 @@ jobs:
       - name: Get journal entries
         working-directory: journal-entries
         run: |
-          curl -X POST -s -H "Authorization: $(gcloud auth print-identity-token)" \
+          curl -X POST -s -H "Authorization: Bearer $(gcloud auth print-identity-token)" \
           -H "Accept: application/json" \
           -H "Content-Type: application/json" \
           -d '{
             "organization": "${{ secrets.ORGANIZATION }}",
             "database-id": "${{ secrets.DATABASE_ID }}",
-            "view-id": "${{ secrets.VIEW_ID }}",
+            "view-id": "${{ secrets.VIEW_ID }}"
           }' \
           -o journal-entries.json \
           ${{ secrets.NOTRE_URL }}
