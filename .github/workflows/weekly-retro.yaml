@@ -50,6 +50,8 @@ jobs:
       - name: process journal entries
         working-directory: journal-entries
         run: |
+          ls -l
+          cat journal-entries.txt
           curl -X POST -s -H "Authorization: Bearer $(gcloud auth print-identity-token)" \
           -H "Accept: application/json" \
           -H "Content-Type: application/json" \
