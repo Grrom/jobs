@@ -78,4 +78,4 @@ jobs:
           printf "%s" '${{ secrets.PUBSUB_PUBLISHER_SERVICE_ACCOUNT }}' > key-file.json
           gcloud auth activate-service-account --key-file=key-file.json
           rm key-file.json
-          ./send-to-pubsub.sh -p ${{ secrets.GCP_PROJECT_ID }} -t discord-alert -m "{\"channel-name\": \"alerts\", \"message\": \"from the scripto\"}"
+          ./send-to-pubsub.sh -p ${{ secrets.GCP_PROJECT_ID }} -t discord-alert -m "{\"channel-name\": \"alerts\", \"message\": \"Weekly Retro summary has been created!\", \"link\": \"https://www.notion.so/${{ secrets.ORGANIZATION }}/${{ secrets.DATABASE_ID }}?v=${{ secrets.VIEW_ID }}&pvs=4\"}"
