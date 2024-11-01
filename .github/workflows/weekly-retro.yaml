@@ -50,12 +50,15 @@ jobs:
       - name: process journal entries
         working-directory: journal-entries
         run: |
-          curl -X POST -s -H "Authorization: $(gcloud auth print-identity-token)" \
+          curl -X POST -s -H "Authorization: Bearer $(gcloud auth print-identity-token)" \
           -H "Accept: application/json" \
           -H "Content-Type: application/json" \
-          -d '{
-            "prompt": "Here are the journal entries for this week, please review and provide feedback. $(cat journal-entries.txt)",
-          }' \
+          -d "{
+            \"prompt\": \"Here's my journal entries for the week, I your help to analyze them and give me some insights or recommendations\",
+            \"base64_text_files\": [
+                \"$(base64 -i journal-entries.txt)\"
+            ]
+          }" \
           -o journal-entries-summary.json \
           ${{ secrets.LLM_URL }}
 
