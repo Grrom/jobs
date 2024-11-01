@@ -61,30 +61,21 @@ jobs:
           -o journal-entries-summary.json \
           ${{ secrets.LLM_URL }}
 
+      - name: send journal entries summay to notion
+        working-directory: journal-entries
+        run: |
+          ../python/get_weekly_retro_template.py journal-entries-summary.json ${{ secrets.ORGANIZATION }} ${{ secrets.DATABASE_ID }} ${{ secrets.VIEW_ID }} > body.json
+
           curl -X POST -s -H "Authorization: Bearer $(gcloud auth print-identity-token)" \
           -H "Accept: application/json" \
           -H "Content-Type: application/json" \
-          -d "{
-            \"prompt\": \"Here's my journal entries for the week, give me some recommendations on how to improve\",
-            \"base64_text_files\": [
-                \"$(base64 -i journal-entries.txt)\"
-            ]
-          }" \
-          -o journal-entries-recommendation.json \
-          ${{ secrets.LLM_URL }}
+          -d @body.json \
+          ${{ secrets.NOTION_PAGE_BUILDER_URL }}
 
-      - name: Authenticate PUB/SUB publisher
+      - name: Send Alert to discord
+        working-directory: ./scripts
         run: |
           printf "%s" '${{ secrets.PUBSUB_PUBLISHER_SERVICE_ACCOUNT }}' > key-file.json
           gcloud auth activate-service-account --key-file=key-file.json
           rm key-file.json
-
-      - name: send journal entries to pubsub
-        working-directory: journal-entries
-        run: |
-          echo '[{ "key": "Name", "value": "Weekly Retrospective" }]' > properties.json 
-          ../python/get_weekly_retro_template.py journal-entries-summary.json journal-entries-recommendation.json > children.json
-          PUBSUB_MESSAGE=$(../scripts/create-pubsub-message-for-notion.sh -o ${{ secrets.ORGANIZATION }} -d ${{ secrets.DATABASE_ID }} -v ${{ secrets.VIEW_ID }} -p properties.json -c children.json)
-          echo "THE PUBSUB MESSAGE"
-          echo $PUBSUB_MESSAGE
-          ../scripts/send-to-pubsub.sh -p ${{ secrets.GCP_PROJECT_ID }} -t ${{ secrets.CREATE_NOTION_PAGE_TOPIC }}  -m $PUBSUB_MESSAGE
+          ./send-to-pubsub.sh -p ${{ secrets.GCP_PROJECT_ID }} -t discord-alert -m "{\"channel-name\": \"alerts\", \"message\": \"from the scripto\"}"

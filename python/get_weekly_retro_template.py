@@ -15,55 +15,55 @@ def load_json(file_path):
 
 
 def main():
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 5:
         print(
-            "Usage: python get_weekly_retro_template.py <summary.json> <recommendations.json>"
+            "Usage: python get_weekly_retro_template.py <summary_json> <organization> <database_id> <view_id>"
         )
         sys.exit(1)
 
     summary_json = sys.argv[1]
-    recommendations_json = sys.argv[2]
+    organization = sys.argv[2]
+    database_id = sys.argv[3]
+    view_id = sys.argv[4]
 
     summary_data = load_json(summary_json)
-    recommendations_data = load_json(recommendations_json)
 
     merged_summary_data = "\n".join(summary_data)
-    merged_recommendations_data = "\n".join(recommendations_data)
 
     summary = []
-    recommendations = []
 
     for line in merged_summary_data.split("\n"):
+        if line.startswith("*") and line.endswith("*"):
+            summary.append(
+                {
+                    "type": "sub_header",
+                    "content": line[1:].strip().replace("*", ""),
+                }
+            )
         if line.startswith("*"):
             summary.append(
                 {"type": "bulleted_list", "content": line[1:].strip().replace("*", "")}
             )
         else:
-            recommendations.append({"type": "text", "content": line})
-    for line in merged_recommendations_data.split("\n"):
-        if line.startswith("*"):
-            recommendations.append(
-                {
-                    "type": "bulleted_list",
-                    "content": line[1:].strip().replace("*", ""),
-                }
-            )
-        else:
-            recommendations.append({"type": "text", "content": line})
+            summary.append({"type": "text", "content": line})
 
-    template = [
+    children = [
         {"type": "header", "content": "Weekly Retro"},
         {"type": "text", "content": "\n"},
         {"type": "sub_header", "content": "Summary"},
         *summary,
         {"type": "text", "content": "\n"},
-        {"type": "sub_header", "content": "Recommendations"},
-        *recommendations,
-        {"type": "text", "content": "\n"},
-        {"type": "text", "content": "\n"},
         {"type": "sub_header", "content": "How to improve"},
         {"type": "text", "content": "your own input"},
     ]
+
+    template = {
+        "organization": organization,
+        "database-id": database_id,
+        "view-id": view_id,
+        "properties": [{"key": "Name", "value": "Weekly Retrospective"}],
+        "children": children,
+    }
 
     print(json.dumps(template, indent=4))
 
