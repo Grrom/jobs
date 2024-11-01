@@ -21,10 +21,9 @@ jobs:
           PATH="google-cloud-sdk/bin:${PATH}"
           gcloud --quiet components update
 
-      - name: Authenticate
-        working-directory: journal-entries
+      - name: Authenticate GCF invoker
         run: |
-          printf "%s" '${{ secrets.SERVICE_ACCOUNT }}' > key-file.json
+          printf "%s" '${{ secrets.GCF_INVOKER_SERVICE_ACCOUNT }}' > key-file.json
           gcloud auth activate-service-account --key-file=key-file.json
           rm key-file.json
 
@@ -50,13 +49,11 @@ jobs:
       - name: process journal entries
         working-directory: journal-entries
         run: |
-          ls -l
-          cat journal-entries.txt
           curl -X POST -s -H "Authorization: Bearer $(gcloud auth print-identity-token)" \
           -H "Accept: application/json" \
           -H "Content-Type: application/json" \
           -d "{
-            \"prompt\": \"Here's my journal entries for the week, I your help to analyze them and give me some insights or recommendations\",
+            \"prompt\": \"Here's my journal entries for the week, give me a summary with points for good and bad\",
             \"base64_text_files\": [
                 \"$(base64 -i journal-entries.txt)\"
             ]
@@ -64,6 +61,30 @@ jobs:
           -o journal-entries-summary.json \
           ${{ secrets.LLM_URL }}
 
-      - name: output journal entries summary
+          curl -X POST -s -H "Authorization: Bearer $(gcloud auth print-identity-token)" \
+          -H "Accept: application/json" \
+          -H "Content-Type: application/json" \
+          -d "{
+            \"prompt\": \"Here's my journal entries for the week, give me some recommendations on how to improve\",
+            \"base64_text_files\": [
+                \"$(base64 -i journal-entries.txt)\"
+            ]
+          }" \
+          -o journal-entries-recommendation.json \
+          ${{ secrets.LLM_URL }}
+
+      - name: Authenticate PUB/SUB publisher
+        run: |
+          printf "%s" '${{ secrets.PUBSUB_PUBLISHER_SERVICE_ACCOUNT }}' > key-file.json
+          gcloud auth activate-service-account --key-file=key-file.json
+          rm key-file.json
+
+      - name: send journal entries to pubsub
         working-directory: journal-entries
-        run: cat journal-entries-summary.json
+        run: |
+          echo '[{ "key": "Name", "value": "Weekly Retrospective" }]' > properties.json 
+          ../python/get_weekly_retro_template.py journal-entries-summary.json journal-entries-recommendation.json > children.json
+          PUBSUB_MESSAGE=$(../scripts/create-pubsub-message-for-notion.sh -o ${{ secrets.ORGANIZATION }} -d ${{ secrets.DATABASE_ID }} -v ${{ secrets.VIEW_ID }} -p properties.json -c children.json)
+          echo "THE PUBSUB MESSAGE"
+          echo $PUBSUB_MESSAGE
+          ../scripts/send-to-pubsub.sh -p ${{ secrets.GCP_PROJECT_ID }} -t ${{ secrets.CREATE_NOTION_PAGE_TOPIC }}  -m $PUBSUB_MESSAGE
