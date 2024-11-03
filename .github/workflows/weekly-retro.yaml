@@ -3,7 +3,7 @@ name: weekly retro
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 0 * * 0"
+    - cron: "0 16 * * 6"
 
 jobs:
   get-journal-entries:
